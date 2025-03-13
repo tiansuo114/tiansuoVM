@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  alpine-3.18:
+    build:
+      context: .
+      dockerfile: tiansuo-alpine-3.18
+    image: tiansuovm.io/alpine:3.18
+    container_name: tiansuovm_alpine_3_18
+    tty: true
+
+  ubuntu-24.04:
+    build:
+      context: .
+      dockerfile: tiansuo-ubuntu-24.04
+    image: tiansuovm.io/ubuntu:24.04
+    container_name: tiansuovm_ubuntu_24_04
+    tty: true
+
+  ubuntu-22.04:
+    build:
+      context: .
+      dockerfile: tiansuo-ubuntu-22.04
+    image: tiansuovm.io/ubuntu:22.04
+    container_name: tiansuovm_ubuntu_22_04
+    tty: true
+
+  ubuntu-20.04:
+    build:
+      context: .
+      dockerfile: tiansuo-ubuntu-20.04
+    image: tiansuovm.io/ubuntu:20.04
+    container_name: tiansuovm_ubuntu_20_04
+    tty: true
+
+  debian-11:
+    build:
+      context: .
+      dockerfile: tiansuo-debian-11
+    image: tiansuovm.io/debian:11
+    container_name: tiansuovm_debian_11
+    tty: true
+
+  centos7:
+    build:
+      context: .
+      dockerfile: tiansuo-centos-7
+    image: tiansuovm.io/centos:centos7
+    container_name: tiansuovm_centos7
+    tty: true

@@ -1,0 +1,244 @@
+openapi: 3.0.0
+info:
+  title: TiansuoVM API
+  description: TiansuoVM平台API文档
+  version: 1.0.0
+servers:
+  - url: /api/v1
+    description: TiansuoVM API基础路径
+tags:
+  - name: 虚拟机管理
+    description: 虚拟机相关接口
+  - name: 镜像管理
+    description: 镜像相关接口
+  - name: 用户管理
+    description: 用户相关接口
+  - name: 管理员功能
+    description: 管理员相关接口
+  - name: 日志管理
+    description: 系统日志相关接口
+
+paths:
+  # 虚拟机管理API
+  /vms:
+    get:
+      summary: 获取虚拟机列表
+      tags:
+        - 虚拟机管理
+      operationId: listVMs
+    post:
+      summary: 创建虚拟机
+      tags:
+        - 虚拟机管理
+      operationId: createVM
+  
+  /vms/{id}:
+    get:
+      summary: 获取虚拟机详情
+      tags:
+        - 虚拟机管理
+      operationId: getVM
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+    delete:
+      summary: 标记删除虚拟机
+      tags:
+        - 虚拟机管理
+      operationId: deleteVM
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+  
+  /vms/{id}/recover:
+    post:
+      summary: 恢复已标记删除的虚拟机
+      tags:
+        - 虚拟机管理
+      operationId: recoverVM
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+  
+  /vms/{id}/start:
+    post:
+      summary: 启动虚拟机
+      tags:
+        - 虚拟机管理
+      operationId: startVM
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+  
+  /vms/{id}/stop:
+    post:
+      summary: 停止虚拟机
+      tags:
+        - 虚拟机管理
+      operationId: stopVM
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+  
+  /vms/{id}/restart:
+    post:
+      summary: 重启虚拟机
+      tags:
+        - 虚拟机管理
+      operationId: restartVM
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+
+  # 镜像管理API
+  /images:
+    get:
+      summary: 获取镜像列表
+      tags:
+        - 镜像管理
+      operationId: listImages
+    post:
+      summary: 创建镜像(管理员)
+      tags:
+        - 镜像管理
+      operationId: createImage
+  
+  /images/{id}:
+    get:
+      summary: 获取镜像详情
+      tags:
+        - 镜像管理
+      operationId: getImage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+    put:
+      summary: 更新镜像信息(管理员)
+      tags:
+        - 镜像管理
+      operationId: updateImage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+
+  # 用户认证API
+  /auth/login:
+    post:
+      summary: 用户登录
+      tags:
+        - 用户管理
+      operationId: login
+  
+  /auth/captcha:
+    get:
+      summary: 获取登录验证码
+      tags:
+        - 用户管理
+      operationId: authCaptcha
+  
+  # 用户管理API
+  /user/logout:
+    post:
+      summary: 用户登出
+      tags:
+        - 用户管理
+      operationId: logout
+  
+  /user/me:
+    get:
+      summary: 获取当前用户信息
+      tags:
+        - 用户管理
+      operationId: getCurrentUser
+    put:
+      summary: 更新当前用户信息
+      tags:
+        - 用户管理
+      operationId: updateCurrentUser
+
+  # 管理员API
+  /admin/users:
+    get:
+      summary: 获取用户列表(管理员)
+      tags:
+        - 管理员功能
+      operationId: listUsers
+  
+  /admin/users/{uid}:
+    put:
+      summary: 更新用户信息(管理员)
+      tags:
+        - 管理员功能
+      operationId: updateUser
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+    delete:
+      summary: 删除用户(管理员)
+      tags:
+        - 管理员功能
+      operationId: deleteUser
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+  
+  /admin/users/role:
+    post:
+      summary: 设置用户角色(管理员)
+      tags:
+        - 管理员功能
+      operationId: setUserRole
+  
+  /admin/users/admins:
+    get:
+      summary: 获取管理员用户列表(管理员)
+      tags:
+        - 管理员功能
+      operationId: getAdminUsers
+  
+  /admin/vms:
+    get:
+      summary: 管理员查看所有虚拟机列表
+      tags:
+        - 管理员功能
+      operationId: adminListVMs
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+security:
+  - bearerAuth: [] 

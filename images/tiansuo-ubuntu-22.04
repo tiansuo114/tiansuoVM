@@ -1,0 +1,18 @@
+# 使用 ubuntu:22.04 作为基础镜像
+FROM ubuntu:22.04
+
+# 更新软件包列表并安装工具
+RUN apt-get update && apt-get install -y \
+    sudo \
+    vim \
+    net-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建 tiansuo 用户，并设置密码为 ubuntu
+RUN useradd -ms /bin/bash tiansuo \
+    && echo "tiansuo:ubuntu" | chpasswd \
+    && usermod -a -G sudo tiansuo
+
+WORKDIR /home/tiansuo
+CMD ["bash"]
+

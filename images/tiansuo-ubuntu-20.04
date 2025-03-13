@@ -1,0 +1,16 @@
+# 使用 ubuntu:20.04 作为基础镜像
+FROM ubuntu:20.04
+
+RUN apt-get update && apt-get install -y \
+    sudo \
+    vim \
+    net-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -ms /bin/bash tiansuo \
+    && echo "tiansuo:ubuntu" | chpasswd \
+    && usermod -a -G sudo tiansuo
+
+WORKDIR /home/tiansuo
+CMD ["bash"]
+

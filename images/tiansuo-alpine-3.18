@@ -1,0 +1,24 @@
+# 使用 alpine:3.18 作为基础镜像
+FROM alpine:3.18
+
+# 安装必要工具：sudo、vim、net-tools、bash 和 shadow（用于用户管理）
+RUN apk update && apk add --no-cache \
+    sudo \
+    vim \
+    net-tools \
+    bash \
+    shadow
+
+# 创建 tiansuo 用户，使用 bash 作为默认 shell
+# Alpine 中默认 home 目录可能不存在，这里先创建目录，再添加用户
+RUN mkdir -p /home/tiansuo \
+    && adduser -D -s /bin/bash tiansuo \
+    && echo "tiansuo:alpine" | chpasswd \
+    && adduser tiansuo wheel
+
+# 设置工作目录
+WORKDIR /home/tiansuo
+
+# 默认启动 bash
+CMD ["bash"]
+

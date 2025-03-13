@@ -1,0 +1,7 @@
+name,display_name,os_type,os_version,architecture,image_url,default_user,picture_url,desc
+ubuntu-20.04,Ubuntu 20.04 LTS,Linux,20.04,amd64,tiansuovm.io/ubuntu:20.04,tiansuo,configs/fs/ubuntu.png,ubuntu 20.04
+ubuntu-22.04,Ubuntu 22.04 LTS,Linux,22.04,amd64,tiansuovm.io/ubuntu:22.04,tiansuo,configs/fs/ubuntu.png,ubuntu 22.04
+ubuntu-24.04,Ubuntu 24.04 LTS,Linux,24.04,amd64,tiansuovm.io/ubuntu:24.04,tiansuo,configs/fs/ubuntu.png,ubuntu 24.04
+centos-7,CentOS 7,Linux,7,amd64,tiansuovm.io/centos:centos7,tiansuo,configs/fs/centos.png,centos 7
+debian-11,Debian 11,Linux,11,amd64,tiansuovm.io/debian:11,tiansuo,configs/fs/debian.png,debian 11
+alpine-3.18,Alpine Linux 3.18,Linux,3.18,amd64,tiansuovm.io/alpine:3.18,tiansuo,configs/fs/alpine.png,alpine 3.18
