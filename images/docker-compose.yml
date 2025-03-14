@@ -45,6 +45,6 @@ services:
     build:
       context: .
       dockerfile: tiansuo-centos-7
-    image: tiansuovm.io/centos:centos7
+    image: tiansuovm.io/centos:7
     container_name: tiansuovm_centos7
     tty: true
