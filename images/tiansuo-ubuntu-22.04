@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     sudo \
     vim \
     net-tools \
+    openssh-server \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建 tiansuo 用户，并设置密码为 ubuntu
