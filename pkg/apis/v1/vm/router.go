@@ -21,7 +21,6 @@ func RegisterRoutes(router *gin.RouterGroup, tokenManager token.Manager, dbResol
 	vmGroup := router.Group("/vms")
 	vmGroup.Use(middleware.CheckToken(tokenManager))
 	vmGroup.Use(auth.AuthMiddleware())
-
 	{
 		// 获取VM列表
 		vmGroup.GET("", h.listVMs)
@@ -39,6 +38,8 @@ func RegisterRoutes(router *gin.RouterGroup, tokenManager token.Manager, dbResol
 		vmGroup.POST("/:id/stop", h.stopVM)
 		// 重启VM
 		vmGroup.POST("/:id/restart", h.restartVM)
+		// 获取vm连接信息
+		vmGroup.GET("/:id/link", h.getImageDefaultCredentials)
 	}
 
 	adminGroup := router.Group("admin/vms")

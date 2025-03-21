@@ -32,7 +32,7 @@ type commonList struct {
 func HandleSuccess(c *gin.Context, data ...any) {
 	res := response{
 		ApiVersion: apiVersionV1,
-		Code:       0,
+		Code:       200,
 		Message:    "success",
 		Data:       nil,
 	}

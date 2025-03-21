@@ -45,6 +45,11 @@ func (s *ConsoleServer) initSystem() (err error) {
 
 	auth.Init(s.TokenManager)
 
+	err = s.VMController.InitNodeIpMap()
+	if err != nil {
+		return err
+	}
+
 	//// 初始化默认管理员账户
 	//if err = s.initAdminUser(); err != nil {
 	//	return err

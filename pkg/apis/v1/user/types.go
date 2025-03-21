@@ -20,11 +20,12 @@ type (
 	}
 
 	loginResp struct {
-		Token    string `json:"token"`
-		UserName string `json:"username"`
+		Token    string         `json:"token"`
+		UserName string         `json:"username"`
+		UserRole model.UserRole `json:"role"`
 	}
 
-	// 用户信息结构体
+	// UserInfo 用户信息结构体
 	UserInfo struct {
 		ID        int64            `json:"id"`
 		UID       string           `json:"uid"`
@@ -49,9 +50,10 @@ type (
 
 	// 更新当前用户信息请求
 	updateCurrentUserReq struct {
-		Tel   string `json:"tel" binding:"omitempty"`
-		Email string `json:"email" binding:"omitempty,email"`
-		Desc  string `json:"desc" binding:"omitempty"`
+		Username string `json:"username" binding:"omitempty"`
+		Tel      string `json:"tel" binding:"omitempty"`
+		Email    string `json:"email" binding:"omitempty,email"`
+		Desc     string `json:"desc" binding:"omitempty"`
 	}
 
 	// 更新密码请求 (如果系统支持用户自行修改密码)

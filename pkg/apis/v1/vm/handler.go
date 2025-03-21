@@ -91,6 +91,7 @@ func (h *handler) listVMs(c *gin.Context) {
 			PodName:   vm.PodName,
 			Namespace: vm.Namespace,
 			NodeName:  vm.NodeName,
+			NodeIp:    vm.NodeIP,
 			IP:        vm.IP,
 			SSHPort:   vm.SSHPort,
 			ImageName: vm.ImageName,
@@ -328,7 +329,7 @@ func (h *handler) getVM(c *gin.Context) {
 		PodName:   vm.PodName,
 		Namespace: vm.Namespace,
 		NodeName:  vm.NodeName,
-		IP:        vm.IP,
+		IP:        vm.NodeIP,
 		SSHPort:   vm.SSHPort,
 		ImageName: vm.ImageName,
 		ImageID:   vm.ImageID,
@@ -600,6 +601,45 @@ func (h *handler) recoverVM(c *gin.Context) {
 	}
 
 	encoding.HandleSuccess(c)
+}
+
+func (h *handler) getImageDefaultCredentials(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, types.DefaultTimeout)
+	defer cancel()
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	vmInstance, err := dao.GetVMByID(ctx, h.dbResolver, id)
+	if err != nil {
+		zap.L().Error("获取VM信息失败", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrInternalServer)
+		return
+	}
+
+	image, err := dao.GetImageByID(ctx, h.dbResolver, vmInstance.ImageID)
+	if err != nil {
+		zap.L().Error("获取镜像信息失败", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrInternalServer)
+		return
+	}
+
+	if image == nil {
+		encoding.HandleError(c, errutil.NewError(http.StatusNotFound, "镜像不存在"))
+		return
+	}
+
+	// 转换为响应结构体
+	imageInfo := getVMDefaultCredentialsResp{
+		Username: image.DefaultUser,
+		Password: image.DefaultPassword,
+	}
+
+	encoding.HandleSuccess(c, imageInfo)
 }
 
 // 生成唯一标识符

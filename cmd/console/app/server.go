@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"tiansuoVM/pkg/apis/v1/image"
+	"tiansuoVM/pkg/apis/v1/terminal"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -173,4 +174,5 @@ func (s *ConsoleServer) installAPIs() {
 	user.RegisterRoutes(apiV1Group, s.TokenManager, s.DBResolver, s.LDAPClient)
 	vm.RegisterRoutes(apiV1Group, s.TokenManager, s.DBResolver, s.VMController)
 	image.RegisterRoutes(apiV1Group, s.TokenManager, s.DBResolver)
+	terminal.RegisterRoutes(s.router)
 }

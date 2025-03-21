@@ -156,6 +156,11 @@ func (h *handler) login(c *gin.Context) {
 
 	if found && user != nil {
 		// 用户已存在
+		if user.Status == model.UserStatusDisabled {
+			encoding.HandleError(c, errutil.NewError(http.StatusForbidden, "用户已被禁用"))
+			return
+		}
+
 		tokenInfo = token.Info{
 			UID:      user.UID,
 			Username: user.Username,
@@ -235,6 +240,7 @@ func (h *handler) login(c *gin.Context) {
 	encoding.HandleSuccess(c, loginResp{
 		Token:    tokenStr,
 		UserName: user.Username,
+		UserRole: user.Role,
 	})
 	defer func() {
 		if err != nil {
@@ -342,6 +348,9 @@ func (h *handler) updateCurrentUser(c *gin.Context) {
 	}
 	if req.Desc != "" {
 		updates["desc"] = req.Desc
+	}
+	if req.Username != "" {
+		updates["username"] = req.Username
 	}
 
 	// 如果没有任何需要更新的字段

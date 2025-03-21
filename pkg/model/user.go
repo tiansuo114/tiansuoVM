@@ -33,7 +33,6 @@ const (
 
 	UserStatusEnabled  UserStatus = "enabled"
 	UserStatusDisabled UserStatus = "disabled"
-	UserStatusLocked   UserStatus = "locked"
 )
 
 func (User) TableName() string {

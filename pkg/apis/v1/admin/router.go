@@ -29,7 +29,8 @@ func RegisterRoutes(router *gin.RouterGroup, tokenManager token.Manager, dbResol
 	{
 		userGroup.GET("", handler.listUsers)
 		userGroup.PUT("/:uid", handler.updateUser)
-		userGroup.DELETE("/:uid", handler.deleteUser)
+		userGroup.DELETE("/:uid/disable", handler.disableUser)
+		userGroup.PUT("/:uid/enable", handler.enableUser)
 		userGroup.POST("/role", handler.setUserRole)
 		userGroup.GET("/admins", handler.getAdminUsers)
 	}

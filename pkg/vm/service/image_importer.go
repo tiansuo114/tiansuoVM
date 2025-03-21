@@ -75,7 +75,7 @@ func (i *ImageImporter) importRecord(ctx context.Context, record []string) error
 		return fmt.Errorf("invalid record length: %d", len(record))
 	}
 
-	pictureRelativePath := strings.TrimSpace(record[7])
+	pictureRelativePath := strings.TrimSpace(record[8])
 	var pictureFullPath string
 	if pictureRelativePath != "" {
 		// 使用项目根路径拼接相对路径
@@ -89,17 +89,18 @@ func (i *ImageImporter) importRecord(ctx context.Context, record []string) error
 
 	// 解析记录
 	image := &model.VMImage{
-		Name:         strings.TrimSpace(record[0]),
-		DisplayName:  strings.TrimSpace(record[1]),
-		OSType:       strings.TrimSpace(record[2]),
-		OSVersion:    strings.TrimSpace(record[3]),
-		Architecture: strings.TrimSpace(record[4]),
-		ImageURL:     strings.TrimSpace(record[5]),
-		DefaultUser:  strings.TrimSpace(record[6]),
-		PictureUrl:   pictureRelativePath,
-		Description:  strings.TrimSpace(record[8]),
-		Status:       model.ImageStatusAvailable,
-		Public:       true, // 系统镜像默认为公共镜像
+		Name:            strings.TrimSpace(record[0]),
+		DisplayName:     strings.TrimSpace(record[1]),
+		OSType:          strings.TrimSpace(record[2]),
+		OSVersion:       strings.TrimSpace(record[3]),
+		Architecture:    strings.TrimSpace(record[4]),
+		ImageURL:        strings.TrimSpace(record[5]),
+		DefaultUser:     strings.TrimSpace(record[6]),
+		DefaultPassword: strings.TrimSpace(record[7]),
+		PictureUrl:      pictureRelativePath,
+		Description:     strings.TrimSpace(record[9]),
+		Status:          model.ImageStatusAvailable,
+		Public:          true, // 系统镜像默认为公共镜像
 	}
 
 	// 检查必填字段

@@ -20,14 +20,15 @@ type VMInfo struct {
 	Namespace string         `json:"namespace"`
 	NodeName  string         `json:"node_name"`
 	IP        string         `json:"ip"`
-	SSHPort   int32         `json:"ssh_port"`
+	NodeIp    string         `json:"node_ip"`
+	SSHPort   int32          `json:"ssh_port"`
 	ImageName string         `json:"image_name"`
-	ImageID   int64         `json:"image_id"`
+	ImageID   int64          `json:"image_id"`
 	Message   string         `json:"message,omitempty"`
-	CreatedAt int64         `json:"created_at"`
-	Creator   string        `json:"creator"`
-	UpdatedAt int64         `json:"updated_at"`
-	Updater   string        `json:"updater"`
+	CreatedAt int64          `json:"created_at"`
+	Creator   string         `json:"creator"`
+	UpdatedAt int64          `json:"updated_at"`
+	Updater   string         `json:"updater"`
 }
 
 // listVMReq 列出VM的请求参数
@@ -91,3 +92,7 @@ type adminCreateVMReq struct {
 	OwnerUsername string `json:"owner_username" binding:"required"`
 }
 
+type getVMDefaultCredentialsResp struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}

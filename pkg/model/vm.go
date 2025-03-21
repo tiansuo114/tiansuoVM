@@ -23,7 +23,8 @@ type VirtualMachine struct {
 
 	// 网络信息
 	IP          string `gorm:"type:varchar(15)"` // Pod IP地址
-	SSHPort     int32  `gorm:"not null"`         // SSH端口号
+	NodeIP      string `gorm:"not null"`
+	SSHPort     int32  `gorm:"not null"` // SSH端口号
 	ReplicasNum int32  `gorm:"not null"`
 
 	// 镜像信息

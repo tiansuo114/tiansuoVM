@@ -22,4 +22,4 @@ run:			## Run generate binary
 .PHONY: run_debug
 run_debug:
 	@echo "+ $@"
-	dlv --listen=:2345 --headless=true --api-version=2 --check-go-version=false --accept-multiclient exec ./dist/console -- --rdb-host="172.23.194.127"   --rdb-port=3306   --rdb-user="root"   --rdb-password="root"   --rdb-dbname="async_vm"   --ldap-host="172.23.194.127"   --ldap-port=389   --ldap-base-dn="dc=example,dc=com"   --ldap-user-name="cn=admin,dc=example,dc=com"   --ldap-password="123456"   --kube-config-path="/root/.kube/config"   --vm-namespace="tiansuo-vm"   --deleted-vm-retention-period=1
+	dlv --listen=:2345 --headless=true --api-version=2 --check-go-version=false --accept-multiclient exec ./dist/console -- --rdb-host="172.23.194.127"   --rdb-port=3306   --rdb-user="root"   --rdb-password="root"   --rdb-dbname="async_vm"   --ldap-host="172.23.194.127"   --ldap-port=389   --ldap-base-dn="dc=example,dc=com"   --ldap-user-name="cn=admin,dc=example,dc=com"   --ldap-password="123456"   --kube-config-path="/home/zhaoyi/config"   --vm-namespace="tiansuo-vm" --storage-class-name="nfs-client"  --deleted-vm-retention-period=200

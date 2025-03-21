@@ -174,8 +174,8 @@ func (h *handler) updateUser(c *gin.Context) {
 	encoding.HandleSuccess(c)
 }
 
-// deleteUser 删除用户
-func (h *handler) deleteUser(c *gin.Context) {
+// disableUser 删除用户
+func (h *handler) disableUser(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c, types.DefaultTimeout)
 	defer cancel()
 
@@ -203,7 +203,10 @@ func (h *handler) deleteUser(c *gin.Context) {
 	}
 
 	// 删除用户
-	if err := dao.DeleteUser(ctx, h.dbResolver, uid); err != nil {
+	updater := map[string]interface{}{
+		"status": model.UserStatusDisabled,
+	}
+	if err := dao.UpdateUser(ctx, h.dbResolver, uid, updater); err != nil {
 		zap.L().Error("删除用户失败", zap.Error(err), zap.String("uid", uid))
 		encoding.HandleError(c, errutil.ErrInternalServer)
 		return
@@ -214,6 +217,56 @@ func (h *handler) deleteUser(c *gin.Context) {
 		UID:       uid,
 		Operator:  model.UserOperatorUpdate,
 		Operation: fmt.Sprintf("管理员删除用户"),
+		CreatedAt: time.Now().UnixMilli(),
+		Creator:   operatorUID,
+	}
+
+	encoding.HandleSuccess(c)
+}
+
+// enableUser 删除用户
+func (h *handler) enableUser(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, types.DefaultTimeout)
+	defer cancel()
+
+	// 获取路径参数
+	uid := c.Param("uid")
+	if uid == "" {
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	// 从Token中获取操作者ID
+	operatorUID := token.GetUIDFromCtx(c)
+
+	// 检查用户是否存在
+	found, _, err := dao.GetUserByUID(ctx, h.dbResolver, uid)
+	if err != nil {
+		zap.L().Error("查询用户失败", zap.Error(err), zap.String("uid", uid))
+		encoding.HandleError(c, errutil.ErrInternalServer)
+		return
+	}
+
+	if !found {
+		encoding.HandleError(c, errutil.NewError(http.StatusNotFound, "用户不存在"))
+		return
+	}
+
+	// 删除用户
+	updater := map[string]interface{}{
+		"status": model.UserStatusEnabled,
+	}
+	if err := dao.UpdateUser(ctx, h.dbResolver, uid, updater); err != nil {
+		zap.L().Error("启用用户失败", zap.Error(err), zap.String("uid", uid))
+		encoding.HandleError(c, errutil.ErrInternalServer)
+		return
+	}
+
+	// 记录操作日志
+	logs.UserOperatorLogChannel <- &model.UserOperatorLog{
+		UID:       uid,
+		Operator:  model.UserOperatorUpdate,
+		Operation: fmt.Sprintf("管理员启用用户"),
 		CreatedAt: time.Now().UnixMilli(),
 		Creator:   operatorUID,
 	}

@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	v1 "k8s.io/api/apps/v1"
 	"math/rand"
 	"sync"
 	"time"
@@ -35,13 +34,33 @@ type Controller struct {
 	// Database client
 	dbResolver *dbresolver.DBResolver
 
-	scName     string
-	replicaNum int32
+	scName string
 
 	// Controller state
 	stopCh chan struct{}
 	wg     sync.WaitGroup
 	mutex  sync.RWMutex
+}
+
+var nodeIpMap map[string]string
+
+func (c *Controller) InitNodeIpMap() error {
+	ipMap := make(map[string]string)
+	nodes, err := c.clientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to list nodes: %w", err)
+	}
+	for _, node := range nodes.Items {
+		for _, address := range node.Status.Addresses {
+			if address.Type == corev1.NodeInternalIP {
+				ipMap[node.Name] = address.Address
+			}
+		}
+	}
+
+	nodeIpMap = ipMap
+
+	return nil
 }
 
 // NewController 创建新的VM控制器
@@ -67,7 +86,6 @@ func NewController(opts *Options) (*Controller, error) {
 		dbResolver: opts.DatabaseOpts,
 		stopCh:     make(chan struct{}),
 		scName:     opts.StorageClassName,
-		replicaNum: opts.ReplicaNum,
 	}
 
 	return controller, nil
@@ -118,6 +136,7 @@ func (c *Controller) CreateVM(ctx context.Context, vm *model.VirtualMachine) err
 		"namespace": statefulSet.Namespace,
 		"status":    model.VMStatusPending,
 		"ssh_port":  vm.SSHPort,
+		"node_ip":   nodeIpMap[statefulSet.Spec.NodeName],
 	}
 
 	// 保存到数据库
@@ -136,8 +155,133 @@ func (c *Controller) CreateVM(ctx context.Context, vm *model.VirtualMachine) err
 	return nil
 }
 
+//// createPod 创建Pod
+//func (c *Controller) createPod(ctx context.Context, vm *model.VirtualMachine) (*v1.StatefulSet, error) {
+//	// 获取镜像信息
+//	image, err := dao.GetImageByID(ctx, c.dbResolver, vm.ImageID)
+//	if err != nil {
+//		return nil, fmt.Errorf("failed to get image: %w", err)
+//	}
+//	if image == nil {
+//		return nil, fmt.Errorf("image not found: %d", vm.ImageID)
+//	}
+//
+//	// 准备SSH密钥环境变量
+//	sshEnv := []corev1.EnvVar{}
+//	if vm.SSHKey != "" {
+//		sshEnv = append(sshEnv, corev1.EnvVar{
+//			Name:  "SSH_PUBLIC_KEY",
+//			Value: vm.SSHKey,
+//		})
+//	}
+//
+//	pod := v1.StatefulSet{
+//		ObjectMeta: metav1.ObjectMeta{
+//			Name:      vm.UID,
+//			Namespace: c.opts.Namespace,
+//			Labels: map[string]string{
+//				"app": "vm",
+//				"vm":  vm.Name,
+//			},
+//		},
+//		Spec: v1.StatefulSetSpec{
+//			ServiceName: vm.Name + "_vm_service",
+//			Replicas:    &vm.ReplicasNum,
+//			Template: corev1.PodTemplateSpec{
+//				ObjectMeta: metav1.ObjectMeta{
+//					Labels: map[string]string{
+//						"app": "tiansuo-vm",
+//					},
+//				},
+//				Spec: corev1.PodSpec{
+//					Containers: []corev1.Container{
+//						{
+//							Name:  "vm",
+//							Image: image.ImageURL,
+//							Resources: corev1.ResourceRequirements{
+//								Requests: corev1.ResourceList{
+//									corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", vm.CPU)),
+//									corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", vm.MemoryMB)),
+//								},
+//								Limits: corev1.ResourceList{
+//									corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", vm.CPU)),
+//									corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", vm.MemoryMB)),
+//								},
+//							},
+//							VolumeMounts: []corev1.VolumeMount{
+//								{
+//									Name:      "vm-data",
+//									MountPath: "/",
+//								},
+//							},
+//							Ports: []corev1.ContainerPort{
+//								{
+//									Name:          "ssh",
+//									ContainerPort: 22,
+//									Protocol:      corev1.ProtocolTCP,
+//								},
+//							},
+//							Env: sshEnv,
+//							// 启动命令 - 确保SSH服务启动
+//							Command: []string{
+//								"/bin/sh",
+//								"-c",
+//								`
+//# 安装SSH服务（如果需要）
+//if command -v apt-get >/dev/null 2>&1; then
+//  apt-get update -y && apt-get install -y openssh-server
+//elif command -v yum >/dev/null 2>&1; then
+//  yum install -y openssh-server
+//elif command -v apk >/dev/null 2>&1; then
+//  apk add --no-cache openssh
+//fi
+//
+//# 配置SSH
+//mkdir -p /run/sshd
+//chmod 0755 /run/sshd
+//mkdir -p /root/.ssh
+//
+//# 如果提供了SSH公钥，添加到authorized_keys
+//if [ ! -z "$SSH_PUBLIC_KEY" ]; then
+//  echo "$SSH_PUBLIC_KEY" > /root/.ssh/authorized_keys
+//  chmod 600 /root/.ssh/authorized_keys
+//fi
+//
+//# 启动SSH服务
+///usr/sbin/sshd -D
+//`,
+//							},
+//						},
+//					},
+//				},
+//			},
+//			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
+//				{
+//					ObjectMeta: metav1.ObjectMeta{
+//						Name: "vm-data",
+//					},
+//					Spec: corev1.PersistentVolumeClaimSpec{
+//						AccessModes: []corev1.PersistentVolumeAccessMode{
+//							corev1.ReadWriteOnce,
+//						},
+//						Resources: corev1.VolumeResourceRequirements{
+//							Requests: corev1.ResourceList{
+//								corev1.ResourceStorage: resource.MustParse(fmt.Sprintf("%dGi", vm.DiskGB)),
+//							},
+//						},
+//						StorageClassName: &c.scName,
+//					},
+//				},
+//			},
+//		},
+//	}
+//
+//	// 创建Pod
+//	return c.clientset.AppsV1().StatefulSets(c.opts.Namespace).Create(ctx, &pod, metav1.CreateOptions{})
+//}
+
 // createPod 创建Pod
-func (c *Controller) createPod(ctx context.Context, vm *model.VirtualMachine) (*v1.StatefulSet, error) {
+func (c *Controller) createPod(ctx context.Context, vm *model.VirtualMachine) (*corev1.Pod, error) {
 	// 获取镜像信息
 	image, err := dao.GetImageByID(ctx, c.dbResolver, vm.ImageID)
 	if err != nil {
@@ -156,7 +300,7 @@ func (c *Controller) createPod(ctx context.Context, vm *model.VirtualMachine) (*
 		})
 	}
 
-	pod := v1.StatefulSet{
+	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      vm.UID,
 			Namespace: c.opts.Namespace,
@@ -165,99 +309,48 @@ func (c *Controller) createPod(ctx context.Context, vm *model.VirtualMachine) (*
 				"vm":  vm.Name,
 			},
 		},
-		Spec: v1.StatefulSetSpec{
-			ServiceName: vm.Name + "_vm_service",
-			Replicas:    &vm.ReplicasNum,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": "vm",
-					"vm":  vm.Name,
-				},
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": "vm",
-						"vm":  vm.Name,
-					},
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "vm",
-							Image: image.ImageURL,
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", vm.CPU)),
-									corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", vm.MemoryMB)),
-								},
-								Limits: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", vm.CPU)),
-									corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", vm.MemoryMB)),
-								},
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "vm-data",
-									MountPath: "/",
-								},
-							},
-							Ports: []corev1.ContainerPort{
-								{
-									Name:          "ssh",
-									ContainerPort: 22,
-									Protocol:      corev1.ProtocolTCP,
-								},
-							},
-							Env: sshEnv,
-							// 启动命令 - 确保SSH服务启动
-							Command: []string{
-								"/bin/sh",
-								"-c",
-								`
-# 安装SSH服务（如果需要）
-if command -v apt-get >/dev/null 2>&1; then
-  apt-get update -y && apt-get install -y openssh-server
-elif command -v yum >/dev/null 2>&1; then
-  yum install -y openssh-server
-elif command -v apk >/dev/null 2>&1; then
-  apk add --no-cache openssh
-fi
-
-# 配置SSH
-mkdir -p /run/sshd
-chmod 0755 /run/sshd
-mkdir -p /root/.ssh
-
-# 如果提供了SSH公钥，添加到authorized_keys
-if [ ! -z "$SSH_PUBLIC_KEY" ]; then
-  echo "$SSH_PUBLIC_KEY" > /root/.ssh/authorized_keys
-  chmod 600 /root/.ssh/authorized_keys
-fi
-
-# 启动SSH服务
-/usr/sbin/sshd -D
-`,
-							},
-						},
-					},
-				},
-			},
-			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "vm-data",
+					Name:  "vm",
+					Image: image.ImageURL,
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", vm.CPU)),
+							corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", vm.MemoryMB)),
+						},
+						Limits: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", vm.CPU)),
+							corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", vm.MemoryMB)),
+						},
 					},
-					Spec: corev1.PersistentVolumeClaimSpec{
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
+					Ports: []corev1.ContainerPort{
+						{
+							Name:          "ssh",
+							ContainerPort: 22,
+							Protocol:      corev1.ProtocolTCP,
 						},
-						Resources: corev1.VolumeResourceRequirements{
-							Requests: corev1.ResourceList{
-								corev1.ResourceStorage: resource.MustParse(fmt.Sprintf("%dGi", vm.DiskGB)),
-							},
-						},
-						StorageClassName: &c.scName,
+					},
+					Env: sshEnv,
+					// 启动命令 - 确保SSH服务启动
+					Command: []string{
+						"/bin/sh",
+						"-c",
+						`
+	# 配置SSH
+	mkdir -p /run/sshd
+	chmod 0755 /run/sshd
+	mkdir -p /root/.ssh
+
+	# 如果提供了SSH公钥，添加到authorized_keys
+	if [ ! -z "$SSH_PUBLIC_KEY" ]; then
+	 echo "$SSH_PUBLIC_KEY" > /root/.ssh/authorized_keys
+	 chmod 600 /root/.ssh/authorized_keys
+	fi
+
+	# 启动SSH服务
+	/usr/sbin/sshd -D
+	`,
 					},
 				},
 			},
@@ -265,33 +358,19 @@ fi
 	}
 
 	// 创建Pod
-	return c.clientset.AppsV1().StatefulSets(c.opts.Namespace).Create(ctx, &pod, metav1.CreateOptions{})
+	return c.clientset.CoreV1().Pods(c.opts.Namespace).Create(ctx, pod, metav1.CreateOptions{})
 }
 
 // DeleteVM 删除虚拟机
 func (c *Controller) DeleteVM(ctx context.Context, vm *model.VirtualMachine) error {
-	// 删除StatefulSet
-	err := c.clientset.AppsV1().StatefulSets(c.opts.Namespace).Delete(ctx, vm.UID, metav1.DeleteOptions{})
+	// 删除Pod
+	err := c.clientset.CoreV1().Pods(vm.Namespace).Delete(ctx, vm.PodName, metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("failed to delete statefulset: %w", err)
+		return fmt.Errorf("failed to delete pod: %w", err)
 	}
 
-	// 删除关联的PVC
-	err = c.clientset.CoreV1().PersistentVolumeClaims(c.opts.Namespace).DeleteCollection(
-		ctx,
-		metav1.DeleteOptions{},
-		metav1.ListOptions{
-			LabelSelector: fmt.Sprintf("app=vm,vm=%s", vm.Name),
-		},
-	)
-	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("failed to delete pvcs: %w", err)
-	}
-
-	// 删除SSH服务
-	err = c.clientset.CoreV1().Services(c.opts.Namespace).Delete(ctx, vm.Name+"_vm_service", metav1.DeleteOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("failed to delete service: %w", err)
+	if err := dao.DeleteVM(ctx, c.dbResolver, vm.ID); err != nil {
+		return fmt.Errorf("failed to update vm status: %w", err)
 	}
 
 	return nil
@@ -326,51 +405,12 @@ func (c *Controller) StopVM(ctx context.Context, vm *model.VirtualMachine) error
 	return nil
 }
 
-// StopVMWithNoStatusChange 停止虚拟机
-func (c *Controller) StopVMWithNoStatusChange(ctx context.Context, vm *model.VirtualMachine) error {
-	// 删除Pod
-	err := c.clientset.CoreV1().Pods(vm.Namespace).Delete(ctx, vm.PodName, metav1.DeleteOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("failed to stop pod: %w", err)
-	}
-
-	return nil
-}
-
 // runPodWatcher 运行Pod监控
 func (c *Controller) runPodWatcher(ctx context.Context) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	// 监控StatefulSet而不是Pod
-	watcher, err := c.clientset.AppsV1().StatefulSets(c.opts.Namespace).Watch(ctx, metav1.ListOptions{
-		LabelSelector: "app=vm",
-	})
-	if err != nil {
-		zap.L().Error("Failed to create statefulset watcher", zap.Error(err))
-		return
-	}
-	defer watcher.Stop()
-
-	for {
-		select {
-		case event, ok := <-watcher.ResultChan():
-			if !ok {
-				return
-			}
-			statefulset, ok := event.Object.(*v1.StatefulSet)
-			if !ok {
-				continue
-			}
-
-			// 更新VM状态
-			if err := c.handleStatefulSetEvent(ctx, statefulset); err != nil {
-				zap.L().Error("Failed to handle statefulset event", zap.Error(err))
-			}
-		case <-c.stopCh:
-			return
-		}
-	}
+	// TODO: 实现Pod事件监控
 }
 
 // runStatusSync 运行状态同步
@@ -378,7 +418,7 @@ func (c *Controller) runStatusSync(ctx context.Context) {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	ticker := time.NewTicker(time.Minute)
+	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -443,6 +483,7 @@ func (c *Controller) syncVMStatus(ctx context.Context) error {
 				"status":    status,
 				"ip":        pod.Status.PodIP,
 				"node_name": pod.Spec.NodeName,
+				"node_ip":   nodeIpMap[pod.Spec.NodeName],
 			}
 			if err := dao.UpdateVMByID(ctx, c.dbResolver, vm.ID, updater); err != nil {
 				zap.L().Error("Failed to update VM status", zap.Int64("vmID", vm.ID), zap.Error(err))
@@ -523,34 +564,44 @@ func (c *Controller) ensureVMServices(ctx context.Context) error {
 
 // createSSHService 创建SSH服务
 func (c *Controller) createSSHService(ctx context.Context, vm *model.VirtualMachine) error {
-	service := &corev1.Service{
+	if vm.SSHPort == 0 {
+		return fmt.Errorf("vm has no SSH port assigned")
+	}
+
+	// 创建Service
+	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      vm.Name + "-vm-service",
-			Namespace: c.opts.Namespace,
+			Name:      fmt.Sprintf("vm-%s-ssh", vm.UID),
+			Namespace: vm.Namespace,
 			Labels: map[string]string{
 				"app": "vm",
 				"vm":  vm.Name,
 			},
 		},
 		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeNodePort,
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "ssh",
+					Port:       22,
+					TargetPort: intstr.FromInt32(22),
+					NodePort:   vm.SSHPort,
+					Protocol:   corev1.ProtocolTCP,
+				},
+			},
 			Selector: map[string]string{
 				"app": "vm",
 				"vm":  vm.Name,
 			},
-			Ports: []corev1.ServicePort{
-				{
-					Name:       "ssh",
-					Port:       vm.SSHPort,
-					TargetPort: intstr.FromInt32(22),
-					Protocol:   corev1.ProtocolTCP,
-				},
-			},
-			Type: corev1.ServiceTypeNodePort,
 		},
 	}
 
-	_, err := c.clientset.CoreV1().Services(c.opts.Namespace).Create(ctx, service, metav1.CreateOptions{})
-	return err
+	_, err := c.clientset.CoreV1().Services(vm.Namespace).Create(ctx, svc, metav1.CreateOptions{})
+	if err != nil && !errors.IsAlreadyExists(err) {
+		return fmt.Errorf("failed to create SSH service: %w", err)
+	}
+
+	return nil
 }
 
 // allocateSSHPort 分配SSH端口
@@ -573,30 +624,4 @@ func (c *Controller) allocateSSHPort(ctx context.Context) (int32, error) {
 	}
 
 	return 0, fmt.Errorf("failed to allocate SSH port after %d tries", maxTries)
-}
-
-func (c *Controller) handleStatefulSetEvent(ctx context.Context, statefulset *v1.StatefulSet) error {
-	// 获取VM信息
-	vm, err := dao.GetVMByUID(ctx, c.dbResolver, statefulset.Name)
-	if err != nil {
-		return fmt.Errorf("failed to get vm: %w", err)
-	}
-	if vm == nil {
-		return nil
-	}
-
-	// 更新状态
-	var status model.VMStatus
-	if statefulset.Status.ReadyReplicas == *statefulset.Spec.Replicas {
-		status = model.VMStatusRunning
-	} else if statefulset.Status.ReadyReplicas == 0 {
-		status = model.VMStatusPending
-	} else {
-		status = model.VMStatusError
-	}
-
-	// 更新数据库
-	return dao.UpdateVMByID(ctx, c.dbResolver, vm.ID, map[string]interface{}{
-		"status": status,
-	})
 }

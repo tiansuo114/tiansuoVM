@@ -4,11 +4,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
 	"tiansuoVM/pkg/auth"
+	"tiansuoVM/pkg/server/middleware"
 	"time"
 
 	"tiansuoVM/pkg/client/ldap"
 	"tiansuoVM/pkg/dbresolver"
-	"tiansuoVM/pkg/server/middleware"
 	"tiansuoVM/pkg/token"
 	"tiansuoVM/pkg/utils/limiter"
 )
@@ -29,8 +29,8 @@ func RegisterRoutes(router *gin.RouterGroup, tokenManager token.Manager, dbResol
 
 	// 需要认证的路由
 	userGroup := router.Group("/user")
-	userGroup.Use(auth.AuthMiddleware())
 	userGroup.Use(middleware.CheckToken(tokenManager))
+	userGroup.Use(auth.AuthMiddleware())
 	{
 		userGroup.POST("/logout", handler.logout)
 		userGroup.GET("/me", handler.getCurrentUser)
