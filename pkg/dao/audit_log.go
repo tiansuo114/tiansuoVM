@@ -24,7 +24,7 @@ func ListAuditLogs(ctx context.Context, dbResolver *dbresolver.DBResolver, query
 		records []model.AuditLog
 	)
 
-	db := dbResolver.GetDB()
+	db := dbResolver.GetDB().WithContext(ctx).Model(&model.AuditLog{})
 
 	// 应用查询条件
 	if query.Username != "" {

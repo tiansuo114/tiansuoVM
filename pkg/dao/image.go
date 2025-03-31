@@ -95,10 +95,11 @@ func ListImagesWithNoPagination(ctx context.Context, dbResolver *dbresolver.DBRe
 }
 
 // ListPublicImages retrieves all public virtual machine image records from the database.
-func ListPublicImages(ctx context.Context, dbResolver *dbresolver.DBResolver) ([]*model.VMImage, error) {
+func ListPublicImages(ctx context.Context, dbResolver *dbresolver.DBResolver, pagination request.Pagination) ([]*model.VMImage, error) {
 	db := dbResolver.GetDB().Model(&model.VMImage{})
 	var images []*model.VMImage
-	err := db.WithContext(ctx).Where("public = ?", true).Find(&images).Error
+	db = db.WithContext(ctx).Where("public = ?", true)
+	err := pagination.MakeSQL(db).Find(&images).Error
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +118,8 @@ func ListImagesByOSType(ctx context.Context, dbResolver *dbresolver.DBResolver, 
 		return images, 0, err
 	}
 
-	err = db.WithContext(ctx).Where("os_type = ?", osType).Find(&images).Error
+	db = db.WithContext(ctx).Where("os_type = ?", osType)
+	err = pagination.MakeSQL(db).Find(&images).Error
 	return images, count, err
 }
 

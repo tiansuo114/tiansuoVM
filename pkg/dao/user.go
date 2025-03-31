@@ -157,9 +157,9 @@ func GetUserOperatorLogByID(ctx context.Context, dbResolver *dbresolver.DBResolv
 }
 
 // ListUserOperatorLogs retrieves all user operation logs.
-func ListUserOperatorLogs(ctx context.Context, dbResolver *dbresolver.DBResolver, pagination request.Pagination) ([]model.UserOperatorLog, int64, error) {
+func ListUserOperatorLogs(ctx context.Context, dbResolver *dbresolver.DBResolver, pagination request.Pagination) ([]*model.UserOperatorLog, int64, error) {
 	db := dbResolver.GetDB().WithContext(ctx).Model(&model.UserOperatorLog{})
-	var logs []model.UserOperatorLog
+	var logs []*model.UserOperatorLog
 
 	var count int64
 	err := db.WithContext(context.Background()).Count(&count).Error
@@ -168,6 +168,9 @@ func ListUserOperatorLogs(ctx context.Context, dbResolver *dbresolver.DBResolver
 	}
 
 	err = pagination.MakeSQL(db).Find(&logs).Error
+	if err != nil {
+		return nil, count, nil
+	}
 
 	return logs, count, err
 }

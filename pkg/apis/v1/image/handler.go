@@ -56,7 +56,7 @@ func (h *handler) listImages(c *gin.Context) {
 
 	switch {
 	case req.Public:
-		images, err = dao.ListPublicImages(ctx, h.dbResolver)
+		images, err = dao.ListPublicImages(ctx, h.dbResolver, req.Pagination)
 	case req.Type != "":
 		images, total, err = dao.ListImagesByOSType(ctx, h.dbResolver, req.Type, req.Pagination)
 	default:
